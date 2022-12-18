@@ -139,13 +139,13 @@ pub async fn auth(email: &str, opts: AuthOpts) -> Result<AuthResult, AuthError> 
     })
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AuthResult {
     pub access_token: String,
     pub profile: ProfileResponse,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DeviceCodeResponse {
     pub user_code: String,
     pub device_code: String,
@@ -155,7 +155,7 @@ pub struct DeviceCodeResponse {
 }
 
 #[allow(unused)]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AccessTokenResponse {
     pub token_type: String,
     pub expires_in: u64,
@@ -166,7 +166,7 @@ pub struct AccessTokenResponse {
 }
 
 #[allow(unused)]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct XboxLiveAuthResponse {
     pub issue_instant: String,
@@ -176,14 +176,14 @@ pub struct XboxLiveAuthResponse {
 }
 
 /// Just the important data
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct XboxLiveAuth {
     pub token: String,
     pub user_hash: String,
 }
 
 #[allow(unused)]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MinecraftAuthResponse {
     pub username: String,
     pub roles: Vec<String>,
@@ -193,7 +193,7 @@ pub struct MinecraftAuthResponse {
 }
 
 #[allow(unused)]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameOwnershipResponse {
     pub items: Vec<GameOwnershipItem>,
     pub signature: String,
@@ -201,7 +201,7 @@ pub struct GameOwnershipResponse {
 }
 
 #[allow(unused)]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameOwnershipItem {
     pub name: String,
     pub signature: String,
