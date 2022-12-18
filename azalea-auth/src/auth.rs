@@ -147,64 +147,64 @@ pub struct AuthResult {
 
 #[derive(Debug, Deserialize)]
 pub struct DeviceCodeResponse {
-    user_code: String,
-    device_code: String,
-    verification_uri: String,
-    expires_in: u64,
-    interval: u64,
+    pub user_code: String,
+    pub device_code: String,
+    pub verification_uri: String,
+    pub expires_in: u64,
+    pub interval: u64,
 }
 
 #[allow(unused)]
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AccessTokenResponse {
-    token_type: String,
-    expires_in: u64,
-    scope: String,
-    access_token: String,
-    refresh_token: String,
-    user_id: String,
+    pub token_type: String,
+    pub expires_in: u64,
+    pub scope: String,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub user_id: String,
 }
 
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct XboxLiveAuthResponse {
-    issue_instant: String,
-    not_after: String,
-    token: String,
-    display_claims: HashMap<String, Vec<HashMap<String, String>>>,
+    pub issue_instant: String,
+    pub not_after: String,
+    pub token: String,
+    pub display_claims: HashMap<String, Vec<HashMap<String, String>>>,
 }
 
 /// Just the important data
 #[derive(Serialize, Deserialize, Debug)]
 pub struct XboxLiveAuth {
-    token: String,
-    user_hash: String,
+    pub token: String,
+    pub user_hash: String,
 }
 
 #[allow(unused)]
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MinecraftAuthResponse {
-    username: String,
-    roles: Vec<String>,
-    access_token: String,
-    token_type: String,
-    expires_in: u64,
+    pub username: String,
+    pub roles: Vec<String>,
+    pub access_token: String,
+    pub token_type: String,
+    pub expires_in: u64,
 }
 
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct GameOwnershipResponse {
-    items: Vec<GameOwnershipItem>,
-    signature: String,
-    key_id: String,
+    pub items: Vec<GameOwnershipItem>,
+    pub signature: String,
+    pub key_id: String,
 }
 
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct GameOwnershipItem {
-    name: String,
-    signature: String,
+    pub name: String,
+    pub signature: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
