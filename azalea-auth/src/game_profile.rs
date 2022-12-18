@@ -1,4 +1,5 @@
 use azalea_buf::McBuf;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -19,7 +20,7 @@ impl GameProfile {
     }
 }
 
-#[derive(McBuf, Debug, Clone)]
+#[derive(McBuf, Debug, Clone, Deserialize, Serialize)]
 pub struct ProfilePropertyValue {
     pub value: String,
     pub signature: Option<String>,

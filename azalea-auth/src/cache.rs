@@ -19,7 +19,7 @@ pub enum CacheError {
     Parse(serde_json::Error),
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CachedAccount {
     pub email: String,
     /// Microsoft auth
@@ -32,7 +32,7 @@ pub struct CachedAccount {
     pub profile: crate::auth::ProfileResponse,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ExpiringValue<T> {
     /// Seconds since the UNIX epoch
     pub expires_at: u64,
