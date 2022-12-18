@@ -1,5 +1,5 @@
 mod auth;
-mod cache;
+pub mod cache;
 pub mod game_profile;
 pub mod sessionserver;
 

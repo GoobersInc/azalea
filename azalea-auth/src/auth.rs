@@ -228,7 +228,7 @@ pub enum GetMicrosoftAuthTokenError {
 }
 
 /// Asks the user to go to a webpage and log in with Microsoft.
-async fn interactive_get_ms_auth_token(
+pub async fn interactive_get_ms_auth_token(
     client: &reqwest::Client,
     email: &str,
 ) -> Result<ExpiringValue<AccessTokenResponse>, GetMicrosoftAuthTokenError> {
@@ -292,7 +292,7 @@ pub enum RefreshMicrosoftAuthTokenError {
     Http(#[from] reqwest::Error),
 }
 
-async fn refresh_ms_auth_token(
+pub async fn refresh_ms_auth_token(
     client: &reqwest::Client,
     refresh_token: &str,
 ) -> Result<ExpiringValue<AccessTokenResponse>, RefreshMicrosoftAuthTokenError> {
@@ -328,7 +328,7 @@ pub enum XboxLiveAuthError {
     InvalidExpiryDate(String),
 }
 
-async fn auth_with_xbox_live(
+pub async fn auth_with_xbox_live(
     client: &reqwest::Client,
     access_token: &str,
 ) -> Result<ExpiringValue<XboxLiveAuth>, XboxLiveAuthError> {
@@ -379,7 +379,7 @@ pub enum MinecraftXstsAuthError {
     Http(#[from] reqwest::Error),
 }
 
-async fn obtain_xsts_for_minecraft(
+pub async fn obtain_xsts_for_minecraft(
     client: &reqwest::Client,
     xbl_auth_token: &str,
 ) -> Result<String, MinecraftXstsAuthError> {
@@ -409,7 +409,7 @@ pub enum MinecraftAuthError {
     Http(#[from] reqwest::Error),
 }
 
-async fn auth_with_minecraft(
+pub async fn auth_with_minecraft(
     client: &reqwest::Client,
     user_hash: &str,
     xsts_token: &str,
@@ -440,7 +440,7 @@ pub enum CheckOwnershipError {
     Http(#[from] reqwest::Error),
 }
 
-async fn check_ownership(
+pub async fn check_ownership(
     client: &reqwest::Client,
     minecraft_access_token: &str,
 ) -> Result<bool, CheckOwnershipError> {
