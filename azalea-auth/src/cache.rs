@@ -58,7 +58,7 @@ impl<T> ExpiringValue<T> {
     }
 }
 
-async fn get_entire_cache(cache_file: &Path) -> Result<Vec<CachedAccount>, CacheError> {
+pub async fn get_entire_cache(cache_file: &Path) -> Result<Vec<CachedAccount>, CacheError> {
     let mut cache: Vec<CachedAccount> = Vec::new();
     if cache_file.exists() {
         let mut cache_file = File::open(cache_file).await.map_err(CacheError::Read)?;
@@ -72,7 +72,11 @@ async fn get_entire_cache(cache_file: &Path) -> Result<Vec<CachedAccount>, Cache
     }
     Ok(cache)
 }
-async fn set_entire_cache(cache_file: &Path, cache: Vec<CachedAccount>) -> Result<(), CacheError> {
+
+pub async fn set_entire_cache(
+    cache_file: &Path,
+    cache: Vec<CachedAccount>,
+) -> Result<(), CacheError> {
     log::trace!("saving cache: {:?}", cache);
 
     if !cache_file.exists() {
