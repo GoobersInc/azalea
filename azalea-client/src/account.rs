@@ -26,7 +26,7 @@ pub struct Account {
     /// manually from azalea-auth.
     pub access_token: Option<String>,
     /// Only required for online-mode accounts.
-    pub uuid: Option<uuid::Uuid>,
+    pub uuid: Option<Uuid>,
 }
 
 impl Account {
@@ -60,6 +60,28 @@ impl Account {
             },
         )
         .await?;
+        Ok(Self {
+            username: auth_result.profile.name,
+            access_token: Some(auth_result.access_token),
+            uuid: Some(Uuid::parse_str(&auth_result.profile.id).expect("Invalid UUID")),
+        })
+    }
+    pub async fn microsoft_password(email: &str, password: &str) -> Result<Self, azalea_auth::AuthError> {
+        let minecraft_dir = get_mc_dir::minecraft_dir().unwrap_or_else(|| {
+            panic!(
+                "No {} environment variable found",
+                get_mc_dir::home_env_var()
+            )
+        });
+        let auth_result = azalea_auth::auth_pw(
+            email,
+            password,
+            azalea_auth::AuthOpts {
+                cache_file: Some(minecraft_dir.join("azalea-auth.json")),
+                ..Default::default()
+            },
+        )
+            .await?;
         Ok(Self {
             username: auth_result.profile.name,
             access_token: Some(auth_result.access_token),
