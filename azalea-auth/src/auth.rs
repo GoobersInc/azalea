@@ -345,8 +345,6 @@ pub async fn automatic_get_ms_auth_token(
         .send()
         .await?;
 
-    println!("{}", hash.status());
-
     let hash = hash.headers().get("Location").unwrap().to_str().unwrap()
         .split("#").collect::<Vec<&str>>()[1]
         .split("&").collect::<Vec<&str>>()[0]
