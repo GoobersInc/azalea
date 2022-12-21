@@ -19,6 +19,8 @@ use thiserror::Error;
 use tokio::io::AsyncWriteExt;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
+use tokio_socks::IntoTargetAddr;
+use tokio_socks::tcp::Socks5Stream;
 use uuid::Uuid;
 
 /// The read half of a connection.
@@ -201,6 +203,31 @@ pub enum ConnectionError {
 }
 
 impl Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> {
+
+    pub async fn new_proxy(address: &SocketAddr, proxy_address: &SocketAddr) -> Result<Self, ConnectionError> {
+        let target = Socks5Stream::connect(proxy_address, address.into_target_addr().unwrap()).await;
+
+        let mut stream = target.unwrap();
+
+        let (read_stream, write_stream) = stream.into_inner().into_split();
+
+        Ok(Connection {
+            reader: ReadConnection {
+                read_stream,
+                buffer: BytesMut::new(),
+                compression_threshold: None,
+                dec_cipher: None,
+                _reading: PhantomData,
+            },
+            writer: WriteConnection {
+                write_stream,
+                compression_threshold: None,
+                enc_cipher: None,
+                _writing: PhantomData,
+            },
+        })
+    }
+
     /// Create a new connection to the given address.
     pub async fn new(address: &SocketAddr) -> Result<Self, ConnectionError> {
         let stream = TcpStream::connect(address).await?;
