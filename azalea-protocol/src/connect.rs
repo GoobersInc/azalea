@@ -207,7 +207,7 @@ impl Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> {
     pub async fn new_proxy(address: &SocketAddr, proxy_address: &SocketAddr) -> Result<Self, ConnectionError> {
         let target = Socks5Stream::connect(proxy_address, address.into_target_addr().unwrap()).await;
 
-        let mut stream = target.unwrap();
+        let stream = target.unwrap();
 
         let (read_stream, write_stream) = stream.into_inner().into_split();
 
