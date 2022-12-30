@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde_json::json;
 use thiserror::Error;
 use uuid::Uuid;
+use crate::Proxy;
 
 #[derive(Debug, Error)]
 pub enum SessionServerError {
@@ -34,8 +35,24 @@ pub async fn join(
     private_key: &[u8],
     uuid: &Uuid,
     server_id: &str,
+    proxy: Option<Proxy>,
 ) -> Result<(), SessionServerError> {
-    let client = reqwest::Client::new();
+
+    let mut client = reqwest::Client::new();
+
+    if proxy.is_some() {
+        let unwrapped_proxy = proxy.unwrap();
+        let mut client_proxy = reqwest::Proxy::all(format!("socks5://{host}:{port}", host = unwrapped_proxy.address.ip(), port = unwrapped_proxy.address.port()))?;
+
+        if unwrapped_proxy.username.is_some() && unwrapped_proxy.password.is_some() {
+            client_proxy = client_proxy.clone().basic_auth(&unwrapped_proxy.username.unwrap(), &unwrapped_proxy.password.unwrap());
+        }
+
+        client = reqwest::Client::builder()
+            .proxy(client_proxy)
+            .build()
+            .unwrap();
+    }
 
     let server_hash = azalea_crypto::hex_digest(&azalea_crypto::digest_data(
         server_id.as_bytes(),

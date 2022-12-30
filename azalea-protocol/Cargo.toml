@@ -35,6 +35,9 @@ tokio = {version = "^1.21.2", features = ["io-util", "net", "macros"]}
 tokio-util = {version = "0.7.4", features = ["codec"]}
 trust-dns-resolver = {version = "^0.22.0", default-features = false, features = ["tokio-runtime"]}
 uuid = "1.1.2"
+tokio-socks = "0.5.1"
+fast-socks5 = "0.8.1"
+reqwest = {version = "0.11.12", features = ["socks"]}
 
 [features]
 connecting = []

@@ -15,10 +15,12 @@ use log::{error, info};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::net::SocketAddr;
+use azalea_auth::Proxy;
 use thiserror::Error;
 use tokio::io::AsyncWriteExt;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
+use tokio_socks::tcp::Socks5Stream;
 use uuid::Uuid;
 
 /// The read half of a connection.
@@ -61,7 +63,7 @@ pub struct WriteConnection<W: ProtocolPacket> {
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     let resolved_address = resolver::resolve_address(&"localhost".try_into().unwrap()).await?;
-///     let mut conn = Connection::new(&resolved_address).await?;
+///     let mut conn = Connection::new(&resolved_address, None).await?;
 ///
 ///     // handshake
 ///     conn.write(
@@ -202,8 +204,29 @@ pub enum ConnectionError {
 
 impl Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> {
     /// Create a new connection to the given address.
-    pub async fn new(address: &SocketAddr) -> Result<Self, ConnectionError> {
-        let stream = TcpStream::connect(address).await?;
+    pub async fn new(address: &SocketAddr, mut proxy: Option<Proxy>) -> Result<Self, ConnectionError> {
+        let stream;
+
+        if proxy.is_some() {
+            let unwrapped_proxy = proxy.unwrap();
+            if unwrapped_proxy.username.is_some() && unwrapped_proxy.password.is_some() {
+                stream = Socks5Stream::connect_with_password(
+                    unwrapped_proxy.address,
+                    address,
+                    unwrapped_proxy.username.unwrap().as_str(),
+                    unwrapped_proxy.password.unwrap().as_str(),
+                ).await.unwrap().into_inner();
+            }
+            else {
+                stream = Socks5Stream::connect(
+                    unwrapped_proxy.address,
+                    address,
+                ).await.unwrap().into_inner();
+            }
+        }
+        else {
+            stream = TcpStream::connect(address).await?;
+        }
 
         // enable tcp_nodelay
         stream.set_nodelay(true)?;
@@ -290,7 +313,7 @@ impl Connection<ClientboundLoginPacket, ServerboundLoginPacket> {
     /// # let address = ServerAddress::try_from("example@example.com").unwrap();
     /// # let resolved_address = azalea_protocol::resolver::resolve_address(&address).await?;
     ///
-    /// let mut conn = Connection::new(&resolved_address).await?;
+    /// let mut conn = Connection::new(&resolved_address, None).await?;
     ///
     /// // transition to the login state, in a real program we would have done a handshake first
     /// let mut conn = conn.login();
@@ -303,7 +326,8 @@ impl Connection<ClientboundLoginPacket, ServerboundLoginPacket> {
     ///             &access_token,
     ///             &Uuid::parse_str(&profile.id).expect("Invalid UUID"),
     ///             e.secret_key,
-    ///             p
+    ///             p,
+    ///             None
     ///         ).await?;
     ///         conn.write(
     ///             ServerboundKeyPacket {
@@ -324,6 +348,7 @@ impl Connection<ClientboundLoginPacket, ServerboundLoginPacket> {
         uuid: &Uuid,
         private_key: [u8; 16],
         packet: ClientboundHelloPacket,
+        proxy: Option<Proxy>,
     ) -> Result<(), SessionServerError> {
         azalea_auth::sessionserver::join(
             access_token,
@@ -331,6 +356,7 @@ impl Connection<ClientboundLoginPacket, ServerboundLoginPacket> {
             &private_key,
             uuid,
             &packet.server_id,
+            proxy,
         )
         .await
     }

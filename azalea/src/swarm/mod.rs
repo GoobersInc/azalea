@@ -22,6 +22,7 @@ use tokio::sync::mpsc::{self, UnboundedSender};
 /// that implement [`SwarmPlugin`].
 ///
 /// ```rust,no_run
+/// use azalea::swarm_plugins;
 /// swarm_plugins![azalea_pathfinder::Plugin];
 /// ```
 #[macro_export]
@@ -344,7 +345,7 @@ where
 {
     /// Add a new account to the swarm. You can remove it later by calling [`Client::disconnect`].
     pub async fn add(&mut self, account: &Account, state: S) -> Result<Client, JoinError> {
-        let conn = Connection::new(&self.resolved_address).await?;
+        let conn = Connection::new(&self.resolved_address, None).await?;
         let (conn, game_profile) = Client::handshake(conn, account, &self.address.clone()).await?;
 
         // tx is moved to the bot so it can send us events
