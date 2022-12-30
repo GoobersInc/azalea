@@ -50,7 +50,7 @@ pub async fn ping_server(
 
     let resolved_address = resolver::resolve_address(&address).await?;
 
-    let mut conn = Connection::new(&resolved_address).await?;
+    let mut conn = Connection::new(&resolved_address, None).await?;
 
     // send the client intention packet and switch to the status state
     conn.write(

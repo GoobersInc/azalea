@@ -232,7 +232,7 @@ impl Client {
         let address: ServerAddress = address.try_into().map_err(|_| JoinError::InvalidAddress)?;
         let resolved_address = resolver::resolve_address(&address).await?;
 
-        let conn = Connection::new(&resolved_address).await?;
+        let conn = Connection::new(&resolved_address, None).await?;
         let (conn, game_profile) = Self::handshake(conn, account, &address).await?;
 
         // The buffer has to be 1 to avoid a bug where if it lags events are
@@ -303,6 +303,7 @@ impl Client {
                                 .expect("Uuid must be present if access token is present."),
                             e.secret_key,
                             p,
+                            None,
                         )
                         .await?;
                     }
