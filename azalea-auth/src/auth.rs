@@ -183,7 +183,7 @@ pub async fn auth_pw(email: &str, password: &str, opts: AuthOpts) -> Result<Auth
                 .expect("Xbox Live auth token shouldn't have expired yet")
                 .token,
         )
-            .await?;
+        .await?;
 
         // Minecraft auth
         let mca = auth_with_minecraft(&client, &xbl_auth.data.user_hash, &xsts_token).await?;
@@ -215,7 +215,7 @@ pub async fn auth_pw(email: &str, password: &str, opts: AuthOpts) -> Result<Auth
                     profile: profile.clone(),
                 },
             )
-                .await
+            .await
             {
                 log::error!("{}", e);
             }
@@ -329,28 +329,42 @@ pub async fn automatic_get_ms_auth_token(
         .await?;
 
     let ppft = tempres
-        .split(",sFTTag:'<input type=\"hidden\" name=\"PPFT\"").collect::<Vec<&str>>()[1]
-        .split("\"/>'").collect::<Vec<&str>>()[0]
-        .split("value=\"").collect::<Vec<&str>>()[1];
+        .split(",sFTTag:'<input type=\"hidden\" name=\"PPFT\"")
+        .collect::<Vec<&str>>()[1]
+        .split("\"/>'")
+        .collect::<Vec<&str>>()[0]
+        .split("value=\"")
+        .collect::<Vec<&str>>()[1];
 
-    let urlpost = tempres
-        .split(",urlPost:'").collect::<Vec<&str>>()[1]
-        .split("',").collect::<Vec<&str>>()[0];
+    let urlpost = tempres.split(",urlPost:'").collect::<Vec<&str>>()[1]
+        .split("',")
+        .collect::<Vec<&str>>()[0];
 
     let hash = client
         .post(urlpost)
-        .form(
-            &[("login", email), ("loginfmt", email), ("passwd", password), ("PPFT", ppft)]
-        )
+        .form(&[
+            ("login", email),
+            ("loginfmt", email),
+            ("passwd", password),
+            ("PPFT", ppft),
+        ])
         .send()
         .await?;
 
     println!("{}", hash.status());
 
-    let hash = hash.headers().get("Location").unwrap().to_str().unwrap()
-        .split("#").collect::<Vec<&str>>()[1]
-        .split("&").collect::<Vec<&str>>()[0]
-        .split("=").collect::<Vec<&str>>()[1];
+    let hash = hash
+        .headers()
+        .get("Location")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .split("#")
+        .collect::<Vec<&str>>()[1]
+        .split("&")
+        .collect::<Vec<&str>>()[0]
+        .split("=")
+        .collect::<Vec<&str>>()[1];
 
     return Ok(ExpiringValue {
         data: AccessTokenResponse {

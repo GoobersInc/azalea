@@ -66,7 +66,10 @@ impl Account {
             uuid: Some(Uuid::parse_str(&auth_result.profile.id).expect("Invalid UUID")),
         })
     }
-    pub async fn microsoft_password(email: &str, password: &str) -> Result<Self, azalea_auth::AuthError> {
+    pub async fn microsoft_password(
+        email: &str,
+        password: &str,
+    ) -> Result<Self, azalea_auth::AuthError> {
         let minecraft_dir = get_mc_dir::minecraft_dir().unwrap_or_else(|| {
             panic!(
                 "No {} environment variable found",
@@ -81,7 +84,7 @@ impl Account {
                 ..Default::default()
             },
         )
-            .await?;
+        .await?;
         Ok(Self {
             username: auth_result.profile.name,
             access_token: Some(auth_result.access_token),

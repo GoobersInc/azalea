@@ -38,6 +38,7 @@ uuid = "1.1.2"
 tokio-socks = "0.5.1"
 fast-socks5 = "0.8.1"
 reqwest = {version = "0.11.12", features = ["socks"]}
+anyhow = "1.0.68"
 
 [features]
 connecting = []

@@ -9,18 +9,19 @@ use crate::packets::ProtocolPacket;
 use crate::read::{read_packet, ReadPacketError};
 use crate::write::write_packet;
 use azalea_auth::sessionserver::SessionServerError;
+use azalea_auth::Proxy;
 use azalea_crypto::{Aes128CfbDec, Aes128CfbEnc};
 use bytes::BytesMut;
+use fast_socks5::client::Config;
+use fast_socks5::client::Socks5Stream;
 use log::{error, info};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::net::SocketAddr;
-use azalea_auth::Proxy;
 use thiserror::Error;
 use tokio::io::AsyncWriteExt;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
-use tokio_socks::tcp::Socks5Stream;
 use uuid::Uuid;
 
 /// The read half of a connection.
@@ -204,27 +205,37 @@ pub enum ConnectionError {
 
 impl Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> {
     /// Create a new connection to the given address.
-    pub async fn new(address: &SocketAddr, mut proxy: Option<Proxy>) -> Result<Self, ConnectionError> {
+    pub async fn new(address: &SocketAddr, proxy: Option<Proxy>) -> Result<Self, ConnectionError> {
         let stream;
 
-        if proxy.is_some() {
-            let unwrapped_proxy = proxy.unwrap();
-            if unwrapped_proxy.username.is_some() && unwrapped_proxy.password.is_some() {
-                stream = Socks5Stream::connect_with_password(
-                    unwrapped_proxy.address,
-                    address,
-                    unwrapped_proxy.username.unwrap().as_str(),
-                    unwrapped_proxy.password.unwrap().as_str(),
-                ).await.unwrap().into_inner();
+        if let Some(proxy) = proxy {
+            let mut config = Config::default();
+            if let Some(username) = proxy.username {
+                config.set_skip_auth(false);
+                let proxy_conn = Socks5Stream::connect_with_password(
+                    proxy.address,
+                    address.ip().to_string(),
+                    address.port(),
+                    username,
+                    proxy.password.unwrap(),
+                    config,
+                )
+                .await;
+                stream = proxy_conn.unwrap().get_socket();
+            } else {
+                config.set_skip_auth(true);
+                let proxy_conn = Socks5Stream::connect_with_password(
+                    proxy.address,
+                    address.ip().to_string(),
+                    address.port(),
+                    "".parse().unwrap(),
+                    "".parse().unwrap(),
+                    config,
+                )
+                .await;
+                stream = proxy_conn.unwrap().get_socket();
             }
-            else {
-                stream = Socks5Stream::connect(
-                    unwrapped_proxy.address,
-                    address,
-                ).await.unwrap().into_inner();
-            }
-        }
-        else {
+        } else {
             stream = TcpStream::connect(address).await?;
         }
 
