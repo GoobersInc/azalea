@@ -3,8 +3,8 @@ pub mod cache;
 pub mod game_profile;
 pub mod sessionserver;
 
-use std::net::SocketAddr;
 pub use auth::*;
+use std::net::SocketAddr;
 
 #[derive(Debug, Clone)]
 pub struct Proxy {
