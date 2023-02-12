@@ -7,6 +7,7 @@
 
 use azalea_buf::{BufReadError, McBufReadable, McBufVarReadable, McBufVarWritable, McBufWritable};
 use azalea_registry_macros::registry;
+use serde::{Deserialize, Serialize};
 use std::io::{Cursor, Write};
 
 pub trait Registry
