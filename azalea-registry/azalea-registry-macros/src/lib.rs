@@ -122,6 +122,28 @@ pub fn registry(input: TokenStream) -> TokenStream {
         }
     });
 
+    // TryFrom<&str> that uses registry ids
+    let mut from_string_items = quote! {};
+    for item in &input.items {
+        let name = &item.name;
+        let id = &item.id;
+        from_string_items.extend(quote! {
+            #id => Ok(Self::#name),
+        });
+    }
+    generated.extend(quote! {
+        impl TryFrom<&str> for #name {
+            type Error = ();
+
+            fn try_from(id: &str) -> Result<Self, Self::Error> {
+                match id {
+                    #from_string_items
+                    _ => Err(())
+                }
+            }
+        }
+    });
+
     // Display that uses registry ids
     let mut display_items = quote! {};
     for item in &input.items {
