@@ -48,7 +48,8 @@ impl GameType {
     }
 
     pub fn short_name(&self) -> &'static str {
-        // TODO: these should be translated TranslatableComponent("selectWorld.gameMode." + string2)
+        // TODO: these should be translated
+        // TranslatableComponent("selectWorld.gameMode." + string2)
         match self {
             GameType::Survival => "Survival",
             GameType::Creative => "Creative",
@@ -58,7 +59,8 @@ impl GameType {
     }
 
     pub fn long_name(&self) -> &'static str {
-        // TODO: These should be translated TranslatableComponent("gameMode." + string2);
+        // TODO: These should be translated TranslatableComponent("gameMode." +
+        // string2);
         match self {
             GameType::Survival => "Survival Mode",
             GameType::Creative => "Creative Mode",
@@ -91,7 +93,8 @@ impl McBufWritable for GameType {
     }
 }
 
-/// Rust doesn't let us `impl McBufReadable for Option<GameType>` so we have to make a new type :(
+/// Rust doesn't let us `impl McBufReadable for Option<GameType>` so we have to
+/// make a new type :(
 #[derive(Hash, Copy, Clone, Debug)]
 pub struct OptionalGameType(Option<GameType>);
 

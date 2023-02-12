@@ -45,14 +45,16 @@ impl<S> Clone for CommandNode<S> {
 }
 
 impl<S> CommandNode<S> {
-    /// Gets the literal, or panics. You should use match if you're not certain about the type.
+    /// Gets the literal, or panics. You should use match if you're not certain
+    /// about the type.
     pub fn literal(&self) -> &Literal {
         match self.value {
             ArgumentBuilderType::Literal(ref literal) => literal,
             _ => panic!("CommandNode::literal() called on non-literal node"),
         }
     }
-    /// Gets the argument, or panics. You should use match if you're not certain about the type.
+    /// Gets the argument, or panics. You should use match if you're not certain
+    /// about the type.
     pub fn argument(&self) -> &Argument {
         match self.value {
             ArgumentBuilderType::Argument(ref argument) => argument,
@@ -63,7 +65,9 @@ impl<S> CommandNode<S> {
     pub fn get_relevant_nodes(&self, input: &mut StringReader) -> Vec<Rc<RefCell<CommandNode<S>>>> {
         let literals = &self.literals;
 
-        if !literals.is_empty() {
+        if literals.is_empty() {
+            self.arguments.values().cloned().collect()
+        } else {
             let cursor = input.cursor();
             while input.can_read() && input.peek() != ' ' {
                 input.skip();
@@ -81,8 +85,6 @@ impl<S> CommandNode<S> {
             } else {
                 self.arguments.values().cloned().collect()
             }
-        } else {
-            self.arguments.values().cloned().collect()
         }
     }
 

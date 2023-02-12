@@ -37,8 +37,8 @@ impl McBufReadable for BlockStateWithPosition {
 
 impl McBufWritable for BlockStateWithPosition {
     fn write_into(&self, buf: &mut impl Write) -> Result<(), std::io::Error> {
-        let data = (self.state as u64) << 12
-            | ((self.pos.x as u64) << 8 | (self.pos.z as u64) << 4 | (self.pos.y as u64));
+        let data = (self.state.id as u64) << 12
+            | (u64::from(self.pos.x) << 8 | u64::from(self.pos.z) << 4 | u64::from(self.pos.y));
         u64::var_write_into(&data, buf)?;
         Ok(())
     }

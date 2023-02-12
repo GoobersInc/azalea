@@ -1,6 +1,6 @@
-//! The Azalea prelude. Things that are necessary for a bare-bones bot are re-exported here.
+//! The Azalea prelude. Things that are necessary for a bare-bones bot are
+//! re-exported here.
 
-pub use crate::bot::BotTrait;
-pub use crate::pathfinder::Trait;
-pub use crate::{plugins, swarm_plugins, Plugin};
+pub use crate::{bot::BotClientExt, pathfinder::PathfinderClientExt, ClientBuilder};
 pub use azalea_client::{Account, Client, Event};
+pub use azalea_ecs::{component::Component, system::Resource};

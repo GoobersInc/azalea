@@ -23,7 +23,7 @@ pub enum PingError {
     #[error("{0}")]
     Connection(#[from] ConnectionError),
     #[error("{0}")]
-    ReadPacket(#[from] azalea_protocol::read::ReadPacketError),
+    ReadPacket(#[from] Box<azalea_protocol::read::ReadPacketError>),
     #[error("{0}")]
     WritePacket(#[from] io::Error),
     #[error("The given address could not be parsed into a ServerAddress")]
@@ -50,7 +50,7 @@ pub async fn ping_server(
 
     let resolved_address = resolver::resolve_address(&address).await?;
 
-    let mut conn = Connection::new(&resolved_address, None).await?;
+    let mut conn = Connection::new(&resolved_address).await?;
 
     // send the client intention packet and switch to the status state
     conn.write(

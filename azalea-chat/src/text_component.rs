@@ -1,4 +1,4 @@
-use crate::{base_component::BaseComponent, style::ChatFormatting, Component};
+use crate::{base_component::BaseComponent, style::ChatFormatting, FormattedText};
 use serde::{ser::SerializeMap, Serialize, Serializer, __private::ser::FlatMapSerializer};
 use std::fmt::Display;
 
@@ -26,24 +26,24 @@ impl Serialize for TextComponent {
 
 const LEGACY_FORMATTING_CODE_SYMBOL: char = '§';
 
-/// Convert a legacy color code string into a Component
-/// Technically in Minecraft this is done when displaying the text, but AFAIK it's the same as just doing it in TextComponent
+/// Convert a legacy color code string into a FormattedText
+/// Technically in Minecraft this is done when displaying the text, but AFAIK
+/// it's the same as just doing it in TextComponent
 pub fn legacy_color_code_to_text_component(legacy_color_code: &str) -> TextComponent {
     let mut components: Vec<TextComponent> = Vec::with_capacity(1);
-    // iterate over legacy_color_code, if it starts with LEGACY_COLOR_CODE_SYMBOL then read the next character and get the style from that
-    // otherwise, add the character to the text
+    // iterate over legacy_color_code, if it starts with LEGACY_COLOR_CODE_SYMBOL
+    // then read the next character and get the style from that otherwise, add
+    // the character to the text
 
-    // we don't use a normal for loop since we need to be able to skip after reading the formatter code symbol
+    // we don't use a normal for loop since we need to be able to skip after reading
+    // the formatter code symbol
     let mut i = 0;
     while i < legacy_color_code.chars().count() {
         if legacy_color_code.chars().nth(i).unwrap() == LEGACY_FORMATTING_CODE_SYMBOL {
             let formatting_code = legacy_color_code.chars().nth(i + 1);
-            let formatting_code = match formatting_code {
-                Some(formatting_code) => formatting_code,
-                None => {
-                    i += 1;
-                    continue;
-                }
+            let Some(formatting_code) = formatting_code else {
+                i += 1;
+                continue;
             };
             if let Some(formatter) = ChatFormatting::from_code(formatting_code) {
                 if components.is_empty() || !components.last().unwrap().text.is_empty() {
@@ -72,7 +72,8 @@ pub fn legacy_color_code_to_text_component(legacy_color_code: &str) -> TextCompo
         return TextComponent::new("".to_string());
     }
 
-    // create the final component by using the first one as the base, and then adding the rest as siblings
+    // create the final component by using the first one as the base, and then
+    // adding the rest as siblings
     let mut final_component = components.remove(0);
     for component in components {
         final_component.base.siblings.push(component.get());
@@ -94,18 +95,18 @@ impl TextComponent {
         }
     }
 
-    fn get(self) -> Component {
-        Component::Text(self)
+    fn get(self) -> FormattedText {
+        FormattedText::Text(self)
     }
 }
 
 impl Display for TextComponent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // this contains the final string will all the ansi escape codes
-        for component in Component::Text(self.clone()).into_iter() {
+        for component in FormattedText::Text(self.clone()).into_iter() {
             let component_text = match &component {
-                Component::Text(c) => c.text.to_string(),
-                Component::Translatable(c) => c.read()?.to_string(),
+                FormattedText::Text(c) => c.text.to_string(),
+                FormattedText::Translatable(c) => c.read()?.to_string(),
             };
 
             f.write_str(&component_text)?;

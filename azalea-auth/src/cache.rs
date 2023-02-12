@@ -19,7 +19,7 @@ pub enum CacheError {
     Parse(serde_json::Error),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct CachedAccount {
     pub email: String,
     /// Microsoft auth
@@ -32,7 +32,7 @@ pub struct CachedAccount {
     pub profile: crate::auth::ProfileResponse,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ExpiringValue<T> {
     /// Seconds since the UNIX epoch
     pub expires_at: u64,
@@ -58,7 +58,7 @@ impl<T> ExpiringValue<T> {
     }
 }
 
-pub async fn get_entire_cache(cache_file: &Path) -> Result<Vec<CachedAccount>, CacheError> {
+async fn get_entire_cache(cache_file: &Path) -> Result<Vec<CachedAccount>, CacheError> {
     let mut cache: Vec<CachedAccount> = Vec::new();
     if cache_file.exists() {
         let mut cache_file = File::open(cache_file).await.map_err(CacheError::Read)?;
@@ -72,11 +72,7 @@ pub async fn get_entire_cache(cache_file: &Path) -> Result<Vec<CachedAccount>, C
     }
     Ok(cache)
 }
-
-pub async fn set_entire_cache(
-    cache_file: &Path,
-    cache: Vec<CachedAccount>,
-) -> Result<(), CacheError> {
+async fn set_entire_cache(cache_file: &Path, cache: Vec<CachedAccount>) -> Result<(), CacheError> {
     log::trace!("saving cache: {:?}", cache);
 
     if !cache_file.exists() {

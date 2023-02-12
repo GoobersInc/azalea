@@ -1,5 +1,5 @@
 use crate::ResourceLocation;
-use azalea_buf::{BufReadError, McBufReadable, McBufWritable};
+use azalea_buf::{BufReadError, McBuf, McBufReadable, McBufWritable};
 use std::{
     io::{Cursor, Write},
     ops::{Add, AddAssign, Mul, Rem, Sub},
@@ -109,7 +109,9 @@ macro_rules! vec3_impl {
     };
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+/// Used to represent an exact position in the world where an entity could be.
+/// For blocks, [`BlockPos`] is used instead.
+#[derive(Clone, Copy, Debug, Default, PartialEq, McBuf)]
 pub struct Vec3 {
     pub x: f64,
     pub y: f64,
@@ -117,6 +119,8 @@ pub struct Vec3 {
 }
 vec3_impl!(Vec3, f64);
 
+/// The coordinates of a block in the world. For entities (if the coordinate
+/// with decimals), use [`Vec3`] instead.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct BlockPos {
     pub x: i32,
@@ -126,7 +130,8 @@ pub struct BlockPos {
 vec3_impl!(BlockPos, i32);
 
 impl BlockPos {
-    /// Get the absolute center of a block position by adding 0.5 to each coordinate.
+    /// Get the absolute center of a block position by adding 0.5 to each
+    /// coordinate.
     pub fn center(&self) -> Vec3 {
         Vec3 {
             x: self.x as f64 + 0.5,
@@ -136,6 +141,8 @@ impl BlockPos {
     }
 }
 
+/// Chunk coordinates are used to represent where a chunk is in the world. You
+/// can convert the x and z to block coordinates by multiplying them by 16.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct ChunkPos {
     pub x: i32,
@@ -176,7 +183,8 @@ impl ChunkBlockPos {
     }
 }
 
-/// The coordinates of a block inside a chunk section. Each coordinate must be in the range [0, 15].
+/// The coordinates of a block inside a chunk section. Each coordinate must be
+/// in the range [0, 15].
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ChunkSectionBlockPos {
     pub x: u8,
@@ -268,10 +276,20 @@ impl From<&Vec3> for BlockPos {
         }
     }
 }
+impl From<Vec3> for BlockPos {
+    fn from(pos: Vec3) -> Self {
+        BlockPos::from(&pos)
+    }
+}
 
 impl From<&Vec3> for ChunkPos {
     fn from(pos: &Vec3) -> Self {
         ChunkPos::from(&BlockPos::from(pos))
+    }
+}
+impl From<Vec3> for ChunkPos {
+    fn from(pos: Vec3) -> Self {
+        ChunkPos::from(&pos)
     }
 }
 

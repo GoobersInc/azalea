@@ -10,6 +10,7 @@ use std::{
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 use thiserror::Error;
+use uuid::Uuid;
 
 #[derive(Default)]
 pub struct AuthOpts {
@@ -139,167 +140,77 @@ pub async fn auth(email: &str, opts: AuthOpts) -> Result<AuthResult, AuthError> 
     })
 }
 
-pub async fn auth_pw(email: &str, password: &str, opts: AuthOpts) -> Result<AuthResult, AuthError> {
-    let cached_account = if let Some(cache_file) = &opts.cache_file {
-        cache::get_account_in_cache(cache_file, email).await
-    } else {
-        None
-    };
-
-    // these two MUST be set by the end, since we return them in AuthResult
-    let profile: ProfileResponse;
-    let minecraft_access_token: String;
-
-    if cached_account.is_some() && !cached_account.as_ref().unwrap().mca.is_expired() {
-        let account = cached_account.as_ref().unwrap();
-        // the minecraft auth data is cached and not expired, so we can just
-        // use that instead of doing auth all over again :)
-        profile = account.profile.clone();
-        minecraft_access_token = account.mca.data.access_token.clone();
-    } else {
-        let client = reqwest::Client::builder()
-            .cookie_store(true)
-            .redirect(reqwest::redirect::Policy::none())
-            .build()
-            .unwrap();
-        let mut msa = if let Some(account) = cached_account {
-            account.msa
-        } else {
-            automatic_get_ms_auth_token(&client, email, &password).await?
-        };
-        if msa.is_expired() {
-            log::trace!("refreshing Microsoft auth token");
-            msa = refresh_ms_auth_token(&client, &msa.data.refresh_token).await?;
-        }
-        let ms_access_token = &msa.data.access_token;
-        log::trace!("Got access token: {}", ms_access_token);
-
-        let xbl_auth = auth_with_xbox_live(&client, ms_access_token).await?;
-
-        let xsts_token = obtain_xsts_for_minecraft(
-            &client,
-            &xbl_auth
-                .get()
-                .expect("Xbox Live auth token shouldn't have expired yet")
-                .token,
-        )
-        .await?;
-
-        // Minecraft auth
-        let mca = auth_with_minecraft(&client, &xbl_auth.data.user_hash, &xsts_token).await?;
-
-        minecraft_access_token = mca
-            .get()
-            .expect("Minecraft auth shouldn't have expired yet")
-            .access_token
-            .to_string();
-
-        if opts.check_ownership {
-            let has_game = check_ownership(&client, &minecraft_access_token).await?;
-            if !has_game {
-                return Err(AuthError::DoesNotOwnGame);
-            }
-        }
-
-        profile = get_profile(&client, &minecraft_access_token).await?;
-
-        if let Some(cache_file) = opts.cache_file {
-            if let Err(e) = cache::set_account_in_cache(
-                &cache_file,
-                email,
-                CachedAccount {
-                    email: email.to_string(),
-                    mca,
-                    msa,
-                    xbl: xbl_auth,
-                    profile: profile.clone(),
-                },
-            )
-            .await
-            {
-                log::error!("{}", e);
-            }
-        }
-    }
-
-    Ok(AuthResult {
-        access_token: minecraft_access_token,
-        profile,
-    })
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct AuthResult {
     pub access_token: String,
     pub profile: ProfileResponse,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct DeviceCodeResponse {
-    pub user_code: String,
-    pub device_code: String,
-    pub verification_uri: String,
-    pub expires_in: u64,
-    pub interval: u64,
+    user_code: String,
+    device_code: String,
+    verification_uri: String,
+    expires_in: u64,
+    interval: u64,
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AccessTokenResponse {
-    pub token_type: String,
-    pub expires_in: u64,
-    pub scope: String,
-    pub access_token: String,
-    pub refresh_token: String,
-    pub user_id: String,
+    token_type: String,
+    expires_in: u64,
+    scope: String,
+    access_token: String,
+    refresh_token: String,
+    user_id: String,
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct XboxLiveAuthResponse {
-    pub issue_instant: String,
-    pub not_after: String,
-    pub token: String,
-    pub display_claims: HashMap<String, Vec<HashMap<String, String>>>,
+    issue_instant: String,
+    not_after: String,
+    token: String,
+    display_claims: HashMap<String, Vec<HashMap<String, String>>>,
 }
 
 /// Just the important data
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct XboxLiveAuth {
-    pub token: String,
-    pub user_hash: String,
+    token: String,
+    user_hash: String,
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MinecraftAuthResponse {
-    pub username: String,
-    pub roles: Vec<String>,
-    pub access_token: String,
-    pub token_type: String,
-    pub expires_in: u64,
+    username: String,
+    roles: Vec<String>,
+    access_token: String,
+    token_type: String,
+    expires_in: u64,
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct GameOwnershipResponse {
-    pub items: Vec<GameOwnershipItem>,
-    pub signature: String,
-    pub key_id: String,
+    items: Vec<GameOwnershipItem>,
+    signature: String,
+    key_id: String,
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct GameOwnershipItem {
-    pub name: String,
-    pub signature: String,
+    name: String,
+    signature: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ProfileResponse {
-    // todo: make the id a uuid
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub skins: Vec<serde_json::Value>,
     pub capes: Vec<serde_json::Value>,
@@ -316,69 +227,8 @@ pub enum GetMicrosoftAuthTokenError {
     Timeout,
 }
 
-pub async fn automatic_get_ms_auth_token(
-    client: &reqwest::Client,
-    email: &str,
-    password: &str,
-) -> Result<ExpiringValue<AccessTokenResponse>, GetMicrosoftAuthTokenError> {
-    let tempres = client
-        .get("https://login.live.com/oauth20_authorize.srf?client_id=000000004C12AE6F&redirect_uri=https://login.live.com/oauth20_desktop.srf&scope=service::user.auth.xboxlive.com::MBI_SSL&display=touch&response_type=token&locale=en")
-        .send()
-        .await?
-        .text()
-        .await?;
-
-    let ppft = tempres
-        .split(",sFTTag:'<input type=\"hidden\" name=\"PPFT\"")
-        .collect::<Vec<&str>>()[1]
-        .split("\"/>'")
-        .collect::<Vec<&str>>()[0]
-        .split("value=\"")
-        .collect::<Vec<&str>>()[1];
-
-    let urlpost = tempres.split(",urlPost:'").collect::<Vec<&str>>()[1]
-        .split("',")
-        .collect::<Vec<&str>>()[0];
-
-    let hash = client
-        .post(urlpost)
-        .form(&[
-            ("login", email),
-            ("loginfmt", email),
-            ("passwd", password),
-            ("PPFT", ppft),
-        ])
-        .send()
-        .await?;
-
-    let hash = hash
-        .headers()
-        .get("Location")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .split("#")
-        .collect::<Vec<&str>>()[1]
-        .split("&")
-        .collect::<Vec<&str>>()[0]
-        .split("=")
-        .collect::<Vec<&str>>()[1];
-
-    return Ok(ExpiringValue {
-        data: AccessTokenResponse {
-            token_type: "null".to_string(),
-            expires_in: 999999999999,
-            scope: "null".to_string(),
-            access_token: hash.to_string(),
-            refresh_token: "null".to_string(),
-            user_id: "null".to_string(),
-        },
-        expires_at: 999999999999,
-    });
-}
-
 /// Asks the user to go to a webpage and log in with Microsoft.
-pub async fn interactive_get_ms_auth_token(
+async fn interactive_get_ms_auth_token(
     client: &reqwest::Client,
     email: &str,
 ) -> Result<ExpiringValue<AccessTokenResponse>, GetMicrosoftAuthTokenError> {
@@ -407,8 +257,7 @@ pub async fn interactive_get_ms_auth_token(
         log::trace!("Polling to check if user has logged in...");
         if let Ok(access_token_response) = client
             .post(format!(
-                "https://login.live.com/oauth20_token.srf?client_id={}",
-                CLIENT_ID
+                "https://login.live.com/oauth20_token.srf?client_id={CLIENT_ID}"
             ))
             .form(&vec![
                 ("client_id", CLIENT_ID),
@@ -442,7 +291,7 @@ pub enum RefreshMicrosoftAuthTokenError {
     Http(#[from] reqwest::Error),
 }
 
-pub async fn refresh_ms_auth_token(
+async fn refresh_ms_auth_token(
     client: &reqwest::Client,
     refresh_token: &str,
 ) -> Result<ExpiringValue<AccessTokenResponse>, RefreshMicrosoftAuthTokenError> {
@@ -478,7 +327,7 @@ pub enum XboxLiveAuthError {
     InvalidExpiryDate(String),
 }
 
-pub async fn auth_with_xbox_live(
+async fn auth_with_xbox_live(
     client: &reqwest::Client,
     access_token: &str,
 ) -> Result<ExpiringValue<XboxLiveAuth>, XboxLiveAuthError> {
@@ -529,7 +378,7 @@ pub enum MinecraftXstsAuthError {
     Http(#[from] reqwest::Error),
 }
 
-pub async fn obtain_xsts_for_minecraft(
+async fn obtain_xsts_for_minecraft(
     client: &reqwest::Client,
     xbl_auth_token: &str,
 ) -> Result<String, MinecraftXstsAuthError> {
@@ -559,7 +408,7 @@ pub enum MinecraftAuthError {
     Http(#[from] reqwest::Error),
 }
 
-pub async fn auth_with_minecraft(
+async fn auth_with_minecraft(
     client: &reqwest::Client,
     user_hash: &str,
     xsts_token: &str,
@@ -590,7 +439,7 @@ pub enum CheckOwnershipError {
     Http(#[from] reqwest::Error),
 }
 
-pub async fn check_ownership(
+async fn check_ownership(
     client: &reqwest::Client,
     minecraft_access_token: &str,
 ) -> Result<bool, CheckOwnershipError> {

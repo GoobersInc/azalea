@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt};
 
+#[cfg(feature = "azalea-buf")]
 use azalea_buf::McBuf;
 use once_cell::sync::Lazy;
 use serde::{ser::SerializeStruct, Serialize, Serializer};
@@ -86,7 +87,8 @@ impl Ansi {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, McBuf)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "azalea-buf", derive(McBuf))]
 pub enum ChatFormatting {
     Black,
     DarkBlue,
@@ -435,7 +437,8 @@ impl Style {
         if !before.underlined.unwrap_or(false) && after.underlined.unwrap_or(false) {
             ansi_codes.push_str(Ansi::UNDERLINED);
         }
-        // if strikethrough used to be false/default and now it's true, set strikethrough
+        // if strikethrough used to be false/default and now it's true, set
+        // strikethrough
         if !before.strikethrough.unwrap_or(false) && after.strikethrough.unwrap_or(false) {
             ansi_codes.push_str(Ansi::STRIKETHROUGH);
         }

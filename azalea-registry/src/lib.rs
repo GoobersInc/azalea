@@ -1,6 +1,50 @@
-use azalea_registry_macros::registry;
+#![doc = include_str!("../README.md")]
 
-registry!(Activity, {
+// The contents of the macros below are generated in
+// codegen/lib/code/registry.py, though the rest of the file isn't
+// auto-generated (so you can add doc comments to the registry enums if you
+// want)
+
+use azalea_buf::{BufReadError, McBufReadable, McBufVarReadable, McBufVarWritable, McBufWritable};
+use azalea_registry_macros::registry;
+use std::io::{Cursor, Write};
+
+pub trait Registry
+where
+    Self: Sized,
+{
+    fn from_u32(value: u32) -> Option<Self>;
+    fn to_u32(&self) -> u32;
+}
+
+/// A registry that might not be present. This is transmitted as a single
+/// varint in the protocol.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct OptionalRegistry<T: Registry>(Option<T>);
+
+impl<T: Registry> McBufReadable for OptionalRegistry<T> {
+    fn read_from(buf: &mut Cursor<&[u8]>) -> Result<Self, BufReadError> {
+        Ok(OptionalRegistry(match u32::var_read_from(buf)? {
+            0 => None,
+            value => Some(
+                T::from_u32(value - 1)
+                    .ok_or(BufReadError::UnexpectedEnumVariant { id: value as i32 })?,
+            ),
+        }))
+    }
+}
+impl<T: Registry> McBufWritable for OptionalRegistry<T> {
+    fn write_into(&self, buf: &mut impl Write) -> Result<(), std::io::Error> {
+        match &self.0 {
+            None => 0u32.var_write_into(buf),
+            Some(value) => (value.to_u32() + 1).var_write_into(buf),
+        }
+    }
+}
+
+registry! {
+/// The AI code that's currently being executed for the entity.
+enum Activity {
     Core => "minecraft:core",
     Idle => "minecraft:idle",
     Work => "minecraft:work",
@@ -27,9 +71,11 @@ registry!(Activity, {
     Roar => "minecraft:roar",
     Emerge => "minecraft:emerge",
     Dig => "minecraft:dig",
-});
+}
+}
 
-registry!(Attribute, {
+registry! {
+enum Attribute {
     GenericMaxHealth => "minecraft:generic.max_health",
     GenericFollowRange => "minecraft:generic.follow_range",
     GenericKnockbackResistance => "minecraft:generic.knockback_resistance",
@@ -43,9 +89,11 @@ registry!(Attribute, {
     GenericLuck => "minecraft:generic.luck",
     ZombieSpawnReinforcements => "minecraft:zombie.spawn_reinforcements",
     HorseJumpStrength => "minecraft:horse.jump_strength",
-});
+}
+}
 
-registry!(BannerPattern, {
+registry! {
+enum BannerPattern {
     Base => "minecraft:base",
     SquareBottomLeft => "minecraft:square_bottom_left",
     SquareBottomRight => "minecraft:square_bottom_right",
@@ -87,9 +135,16 @@ registry!(BannerPattern, {
     Flower => "minecraft:flower",
     Mojang => "minecraft:mojang",
     Piglin => "minecraft:piglin",
-});
+}
+}
 
-registry!(Block, {
+registry! {
+/// An enum of every type of block in the game. To represent a block *state*,
+/// use [`azalea_block::BlockState`] or the [`azalea_block::Block`] trait.
+///
+/// [`azalea_block::BlockState`]: https://docs.rs/azalea-block/latest/azalea_block/struct.BlockState.html
+/// [`azalea_block::Block`]: https://docs.rs/azalea-block/latest/azalea_block/trait.Block.html
+enum Block {
     Air => "minecraft:air",
     Stone => "minecraft:stone",
     Granite => "minecraft:granite",
@@ -1023,9 +1078,14 @@ registry!(Block, {
     PearlescentFroglight => "minecraft:pearlescent_froglight",
     Frogspawn => "minecraft:frogspawn",
     ReinforcedDeepslate => "minecraft:reinforced_deepslate",
-});
+}
+}
 
-registry!(BlockEntityType, {
+registry! {
+/// An enum that contains every type of block entity. A block entity is a block
+/// that contains data that can't be represented as just a block state, like
+/// how chests store items.
+enum BlockEntityKind {
     Furnace => "minecraft:furnace",
     Chest => "minecraft:chest",
     TrappedChest => "minecraft:trapped_chest",
@@ -1062,9 +1122,11 @@ registry!(BlockEntityType, {
     SculkSensor => "minecraft:sculk_sensor",
     SculkCatalyst => "minecraft:sculk_catalyst",
     SculkShrieker => "minecraft:sculk_shrieker",
-});
+}
+}
 
-registry!(BlockPredicateType, {
+registry! {
+enum BlockPredicateKind {
     MatchingBlocks => "minecraft:matching_blocks",
     MatchingBlockTag => "minecraft:matching_block_tag",
     MatchingFluids => "minecraft:matching_fluids",
@@ -1077,9 +1139,11 @@ registry!(BlockPredicateType, {
     AllOf => "minecraft:all_of",
     Not => "minecraft:not",
     True => "minecraft:true",
-});
+}
+}
 
-registry!(CatVariant, {
+registry! {
+enum CatVariant {
     Tabby => "minecraft:tabby",
     Black => "minecraft:black",
     Red => "minecraft:red",
@@ -1091,9 +1155,11 @@ registry!(CatVariant, {
     White => "minecraft:white",
     Jellie => "minecraft:jellie",
     AllBlack => "minecraft:all_black",
-});
+}
+}
 
-registry!(ChunkStatus, {
+registry! {
+enum ChunkStatus {
     Empty => "minecraft:empty",
     StructureStarts => "minecraft:structure_starts",
     StructureReferences => "minecraft:structure_references",
@@ -1107,9 +1173,11 @@ registry!(ChunkStatus, {
     Spawn => "minecraft:spawn",
     Heightmaps => "minecraft:heightmaps",
     Full => "minecraft:full",
-});
+}
+}
 
-registry!(CommandArgumentType, {
+registry! {
+enum CommandArgumentKind {
     Bool => "brigadier:bool",
     Float => "brigadier:float",
     Double => "brigadier:double",
@@ -1158,9 +1226,11 @@ registry!(CommandArgumentType, {
     TemplateMirror => "minecraft:template_mirror",
     TemplateRotation => "minecraft:template_rotation",
     Uuid => "minecraft:uuid",
-});
+}
+}
 
-registry!(CustomStat, {
+registry! {
+enum CustomStat {
     LeaveGame => "minecraft:leave_game",
     PlayTime => "minecraft:play_time",
     TotalWorldTime => "minecraft:total_world_time",
@@ -1236,9 +1306,11 @@ registry!(CustomStat, {
     InteractWithGrindstone => "minecraft:interact_with_grindstone",
     TargetHit => "minecraft:target_hit",
     InteractWithSmithingTable => "minecraft:interact_with_smithing_table",
-});
+}
+}
 
-registry!(Enchantment, {
+registry! {
+enum Enchantment {
     Protection => "minecraft:protection",
     FireProtection => "minecraft:fire_protection",
     FeatherFalling => "minecraft:feather_falling",
@@ -1278,9 +1350,12 @@ registry!(Enchantment, {
     Piercing => "minecraft:piercing",
     Mending => "minecraft:mending",
     VanishingCurse => "minecraft:vanishing_curse",
-});
+}
+}
 
-registry!(EntityType, {
+registry! {
+/// An enum that contains every type of entity.
+enum EntityKind {
     Allay => "minecraft:allay",
     AreaEffectCloud => "minecraft:area_effect_cloud",
     ArmorStand => "minecraft:armor_stand",
@@ -1399,30 +1474,38 @@ registry!(EntityType, {
     ZombifiedPiglin => "minecraft:zombified_piglin",
     Player => "minecraft:player",
     FishingBobber => "minecraft:fishing_bobber",
-});
+}
+}
 
-registry!(FloatProviderType, {
+registry! {
+enum FloatProviderKind {
     Constant => "minecraft:constant",
     Uniform => "minecraft:uniform",
     ClampedNormal => "minecraft:clamped_normal",
     Trapezoid => "minecraft:trapezoid",
-});
+}
+}
 
-registry!(Fluid, {
+registry! {
+enum Fluid {
     Empty => "minecraft:empty",
     FlowingWater => "minecraft:flowing_water",
     Water => "minecraft:water",
     FlowingLava => "minecraft:flowing_lava",
     Lava => "minecraft:lava",
-});
+}
+}
 
-registry!(FrogVariant, {
+registry! {
+enum FrogVariant {
     Temperate => "minecraft:temperate",
     Warm => "minecraft:warm",
     Cold => "minecraft:cold",
-});
+}
+}
 
-registry!(GameEvent, {
+registry! {
+enum GameEvent {
     BlockActivate => "minecraft:block_activate",
     BlockAttach => "minecraft:block_attach",
     BlockChange => "minecraft:block_change",
@@ -1469,18 +1552,22 @@ registry!(GameEvent, {
     Step => "minecraft:step",
     Swim => "minecraft:swim",
     Teleport => "minecraft:teleport",
-});
+}
+}
 
-registry!(HeightProviderType, {
+registry! {
+enum HeightProviderKind {
     Constant => "minecraft:constant",
     Uniform => "minecraft:uniform",
     BiasedToBottom => "minecraft:biased_to_bottom",
     VeryBiasedToBottom => "minecraft:very_biased_to_bottom",
     Trapezoid => "minecraft:trapezoid",
     WeightedList => "minecraft:weighted_list",
-});
+}
+}
 
-registry!(Instrument, {
+registry! {
+enum Instrument {
     PonderGoatHorn => "minecraft:ponder_goat_horn",
     SingGoatHorn => "minecraft:sing_goat_horn",
     SeekGoatHorn => "minecraft:seek_goat_horn",
@@ -1489,18 +1576,22 @@ registry!(Instrument, {
     CallGoatHorn => "minecraft:call_goat_horn",
     YearnGoatHorn => "minecraft:yearn_goat_horn",
     DreamGoatHorn => "minecraft:dream_goat_horn",
-});
+}
+}
 
-registry!(IntProviderType, {
+registry! {
+enum IntProviderKind {
     Constant => "minecraft:constant",
     Uniform => "minecraft:uniform",
     BiasedToBottom => "minecraft:biased_to_bottom",
     Clamped => "minecraft:clamped",
     WeightedList => "minecraft:weighted_list",
     ClampedNormal => "minecraft:clamped_normal",
-});
+}
+}
 
-registry!(Item, {
+registry! {
+enum Item {
     Air => "minecraft:air",
     Stone => "minecraft:stone",
     Granite => "minecraft:granite",
@@ -2653,9 +2744,11 @@ registry!(Item, {
     PearlescentFroglight => "minecraft:pearlescent_froglight",
     Frogspawn => "minecraft:frogspawn",
     EchoShard => "minecraft:echo_shard",
-});
+}
+}
 
-registry!(LootConditionType, {
+registry! {
+enum LootConditionKind {
     Inverted => "minecraft:inverted",
     Alternative => "minecraft:alternative",
     RandomChance => "minecraft:random_chance",
@@ -2673,9 +2766,11 @@ registry!(LootConditionType, {
     Reference => "minecraft:reference",
     TimeCheck => "minecraft:time_check",
     ValueCheck => "minecraft:value_check",
-});
+}
+}
 
-registry!(LootFunctionType, {
+registry! {
+enum LootFunctionKind {
     SetCount => "minecraft:set_count",
     EnchantWithLevels => "minecraft:enchant_with_levels",
     EnchantRandomly => "minecraft:enchant_randomly",
@@ -2701,21 +2796,27 @@ registry!(LootFunctionType, {
     SetBannerPattern => "minecraft:set_banner_pattern",
     SetPotion => "minecraft:set_potion",
     SetInstrument => "minecraft:set_instrument",
-});
+}
+}
 
-registry!(LootNbtProviderType, {
+registry! {
+enum LootNbtProviderKind {
     Storage => "minecraft:storage",
     Context => "minecraft:context",
-});
+}
+}
 
-registry!(LootNumberProviderType, {
+registry! {
+enum LootNumberProviderKind {
     Constant => "minecraft:constant",
     Uniform => "minecraft:uniform",
     Binomial => "minecraft:binomial",
     Score => "minecraft:score",
-});
+}
+}
 
-registry!(LootPoolEntryType, {
+registry! {
+enum LootPoolEntryKind {
     Empty => "minecraft:empty",
     Item => "minecraft:item",
     LootTable => "minecraft:loot_table",
@@ -2724,14 +2825,18 @@ registry!(LootPoolEntryType, {
     Alternatives => "minecraft:alternatives",
     Sequence => "minecraft:sequence",
     Group => "minecraft:group",
-});
+}
+}
 
-registry!(LootScoreProviderType, {
+registry! {
+enum LootScoreProviderKind {
     Fixed => "minecraft:fixed",
     Context => "minecraft:context",
-});
+}
+}
 
-registry!(MemoryModuleType, {
+registry! {
+enum MemoryModuleKind {
     Dummy => "minecraft:dummy",
     Home => "minecraft:home",
     JobSite => "minecraft:job_site",
@@ -2824,9 +2929,11 @@ registry!(MemoryModuleType, {
     LikedNoteblock => "minecraft:liked_noteblock",
     LikedNoteblockCooldownTicks => "minecraft:liked_noteblock_cooldown_ticks",
     ItemPickupCooldownTicks => "minecraft:item_pickup_cooldown_ticks",
-});
+}
+}
 
-registry!(Menu, {
+registry! {
+enum Menu {
     Generic9x1 => "minecraft:generic_9x1",
     Generic9x2 => "minecraft:generic_9x2",
     Generic9x3 => "minecraft:generic_9x3",
@@ -2851,9 +2958,11 @@ registry!(Menu, {
     Smoker => "minecraft:smoker",
     CartographyTable => "minecraft:cartography_table",
     Stonecutter => "minecraft:stonecutter",
-});
+}
+}
 
-registry!(MobEffect, {
+registry! {
+enum MobEffect {
     Speed => "minecraft:speed",
     Slowness => "minecraft:slowness",
     Haste => "minecraft:haste",
@@ -2887,9 +2996,11 @@ registry!(MobEffect, {
     BadOmen => "minecraft:bad_omen",
     HeroOfTheVillage => "minecraft:hero_of_the_village",
     Darkness => "minecraft:darkness",
-});
+}
+}
 
-registry!(PaintingVariant, {
+registry! {
+enum PaintingVariant {
     Kebab => "minecraft:kebab",
     Aztec => "minecraft:aztec",
     Alban => "minecraft:alban",
@@ -2920,9 +3031,11 @@ registry!(PaintingVariant, {
     Water => "minecraft:water",
     Fire => "minecraft:fire",
     DonkeyKong => "minecraft:donkey_kong",
-});
+}
+}
 
-registry!(ParticleType, {
+registry! {
+enum ParticleKind {
     AmbientEntityEffect => "minecraft:ambient_entity_effect",
     AngryVillager => "minecraft:angry_villager",
     Block => "minecraft:block",
@@ -3016,9 +3129,11 @@ registry!(ParticleType, {
     ElectricSpark => "minecraft:electric_spark",
     Scrape => "minecraft:scrape",
     Shriek => "minecraft:shriek",
-});
+}
+}
 
-registry!(PointOfInterestType, {
+registry! {
+enum PointOfInterestKind {
     Armorer => "minecraft:armorer",
     Butcher => "minecraft:butcher",
     Cartographer => "minecraft:cartographer",
@@ -3039,20 +3154,26 @@ registry!(PointOfInterestType, {
     NetherPortal => "minecraft:nether_portal",
     Lodestone => "minecraft:lodestone",
     LightningRod => "minecraft:lightning_rod",
-});
+}
+}
 
-registry!(PosRuleTest, {
+registry! {
+enum PosRuleTest {
     AlwaysTrue => "minecraft:always_true",
     LinearPos => "minecraft:linear_pos",
     AxisAlignedLinearPos => "minecraft:axis_aligned_linear_pos",
-});
+}
+}
 
-registry!(PositionSourceType, {
+registry! {
+enum PositionSourceKind {
     Block => "minecraft:block",
     Entity => "minecraft:entity",
-});
+}
+}
 
-registry!(Potion, {
+registry! {
+enum Potion {
     Empty => "minecraft:empty",
     Water => "minecraft:water",
     Mundane => "minecraft:mundane",
@@ -3096,9 +3217,11 @@ registry!(Potion, {
     Luck => "minecraft:luck",
     SlowFalling => "minecraft:slow_falling",
     LongSlowFalling => "minecraft:long_slow_falling",
-});
+}
+}
 
-registry!(RecipeSerializer, {
+registry! {
+enum RecipeSerializer {
     CraftingShaped => "minecraft:crafting_shaped",
     CraftingShapeless => "minecraft:crafting_shapeless",
     CraftingSpecialArmordye => "minecraft:crafting_special_armordye",
@@ -3120,9 +3243,11 @@ registry!(RecipeSerializer, {
     CampfireCooking => "minecraft:campfire_cooking",
     Stonecutting => "minecraft:stonecutting",
     Smithing => "minecraft:smithing",
-});
+}
+}
 
-registry!(RecipeType, {
+registry! {
+enum RecipeKind {
     Crafting => "minecraft:crafting",
     Smelting => "minecraft:smelting",
     Blasting => "minecraft:blasting",
@@ -3130,25 +3255,31 @@ registry!(RecipeType, {
     CampfireCooking => "minecraft:campfire_cooking",
     Stonecutting => "minecraft:stonecutting",
     Smithing => "minecraft:smithing",
-});
+}
+}
 
-registry!(RuleTest, {
+registry! {
+enum RuleTest {
     AlwaysTrue => "minecraft:always_true",
     BlockMatch => "minecraft:block_match",
     BlockstateMatch => "minecraft:blockstate_match",
     TagMatch => "minecraft:tag_match",
     RandomBlockMatch => "minecraft:random_block_match",
     RandomBlockstateMatch => "minecraft:random_blockstate_match",
-});
+}
+}
 
-registry!(Schedule, {
+registry! {
+enum Schedule {
     Empty => "minecraft:empty",
     Simple => "minecraft:simple",
     VillagerBaby => "minecraft:villager_baby",
     VillagerDefault => "minecraft:villager_default",
-});
+}
+}
 
-registry!(SensorType, {
+registry! {
+enum SensorKind {
     Dummy => "minecraft:dummy",
     NearestItems => "minecraft:nearest_items",
     NearestLivingEntities => "minecraft:nearest_living_entities",
@@ -3170,9 +3301,11 @@ registry!(SensorType, {
     FrogAttackables => "minecraft:frog_attackables",
     IsInWater => "minecraft:is_in_water",
     WardenEntitySensor => "minecraft:warden_entity_sensor",
-});
+}
+}
 
-registry!(SoundEvent, {
+registry! {
+enum SoundEvent {
     EntityAllayAmbientWithItem => "minecraft:entity.allay.ambient_with_item",
     EntityAllayAmbientWithoutItem => "minecraft:entity.allay.ambient_without_item",
     EntityAllayDeath => "minecraft:entity.allay.death",
@@ -4494,9 +4627,11 @@ registry!(SoundEvent, {
     EntityZombieVillagerDeath => "minecraft:entity.zombie_villager.death",
     EntityZombieVillagerHurt => "minecraft:entity.zombie_villager.hurt",
     EntityZombieVillagerStep => "minecraft:entity.zombie_villager.step",
-});
+}
+}
 
-registry!(StatType, {
+registry! {
+enum StatKind {
     Mined => "minecraft:mined",
     Crafted => "minecraft:crafted",
     Used => "minecraft:used",
@@ -4506,9 +4641,11 @@ registry!(StatType, {
     Killed => "minecraft:killed",
     KilledBy => "minecraft:killed_by",
     Custom => "minecraft:custom",
-});
+}
+}
 
-registry!(VillagerProfession, {
+registry! {
+enum VillagerProfession {
     None => "minecraft:none",
     Armorer => "minecraft:armorer",
     Butcher => "minecraft:butcher",
@@ -4524,9 +4661,11 @@ registry!(VillagerProfession, {
     Shepherd => "minecraft:shepherd",
     Toolsmith => "minecraft:toolsmith",
     Weaponsmith => "minecraft:weaponsmith",
-});
+}
+}
 
-registry!(VillagerType, {
+registry! {
+enum VillagerKind {
     Desert => "minecraft:desert",
     Jungle => "minecraft:jungle",
     Plains => "minecraft:plains",
@@ -4534,16 +4673,20 @@ registry!(VillagerType, {
     Snow => "minecraft:snow",
     Swamp => "minecraft:swamp",
     Taiga => "minecraft:taiga",
-});
+}
+}
 
-registry!(WorldgenBiomeSource, {
+registry! {
+enum WorldgenBiomeSource {
     Fixed => "minecraft:fixed",
     MultiNoise => "minecraft:multi_noise",
     Checkerboard => "minecraft:checkerboard",
     TheEnd => "minecraft:the_end",
-});
+}
+}
 
-registry!(WorldgenBlockStateProviderType, {
+registry! {
+enum WorldgenBlockStateProviderKind {
     SimpleStateProvider => "minecraft:simple_state_provider",
     WeightedStateProvider => "minecraft:weighted_state_provider",
     NoiseThresholdProvider => "minecraft:noise_threshold_provider",
@@ -4551,21 +4694,27 @@ registry!(WorldgenBlockStateProviderType, {
     DualNoiseProvider => "minecraft:dual_noise_provider",
     RotatedBlockProvider => "minecraft:rotated_block_provider",
     RandomizedIntStateProvider => "minecraft:randomized_int_state_provider",
-});
+}
+}
 
-registry!(WorldgenCarver, {
+registry! {
+enum WorldgenCarver {
     Cave => "minecraft:cave",
     NetherCave => "minecraft:nether_cave",
     Canyon => "minecraft:canyon",
-});
+}
+}
 
-registry!(WorldgenChunkGenerator, {
+registry! {
+enum WorldgenChunkGenerator {
     Noise => "minecraft:noise",
     Flat => "minecraft:flat",
     Debug => "minecraft:debug",
-});
+}
+}
 
-registry!(WorldgenDensityFunctionType, {
+registry! {
+enum WorldgenDensityFunctionKind {
     BlendAlpha => "minecraft:blend_alpha",
     BlendOffset => "minecraft:blend_offset",
     Beardifier => "minecraft:beardifier",
@@ -4598,9 +4747,11 @@ registry!(WorldgenDensityFunctionType, {
     Spline => "minecraft:spline",
     Constant => "minecraft:constant",
     YClampedGradient => "minecraft:y_clamped_gradient",
-});
+}
+}
 
-registry!(WorldgenFeature, {
+registry! {
+enum WorldgenFeature {
     NoOp => "minecraft:no_op",
     Tree => "minecraft:tree",
     Flower => "minecraft:flower",
@@ -4662,14 +4813,18 @@ registry!(WorldgenFeature, {
     LargeDripstone => "minecraft:large_dripstone",
     PointedDripstone => "minecraft:pointed_dripstone",
     SculkPatch => "minecraft:sculk_patch",
-});
+}
+}
 
-registry!(WorldgenFeatureSizeType, {
+registry! {
+enum WorldgenFeatureSizeKind {
     TwoLayersFeatureSize => "minecraft:two_layers_feature_size",
     ThreeLayersFeatureSize => "minecraft:three_layers_feature_size",
-});
+}
+}
 
-registry!(WorldgenFoliagePlacerType, {
+registry! {
+enum WorldgenFoliagePlacerKind {
     BlobFoliagePlacer => "minecraft:blob_foliage_placer",
     SpruceFoliagePlacer => "minecraft:spruce_foliage_placer",
     PineFoliagePlacer => "minecraft:pine_foliage_placer",
@@ -4680,9 +4835,11 @@ registry!(WorldgenFoliagePlacerType, {
     MegaPineFoliagePlacer => "minecraft:mega_pine_foliage_placer",
     DarkOakFoliagePlacer => "minecraft:dark_oak_foliage_placer",
     RandomSpreadFoliagePlacer => "minecraft:random_spread_foliage_placer",
-});
+}
+}
 
-registry!(WorldgenMaterialCondition, {
+registry! {
+enum WorldgenMaterialCondition {
     Biome => "minecraft:biome",
     NoiseThreshold => "minecraft:noise_threshold",
     VerticalGradient => "minecraft:vertical_gradient",
@@ -4694,16 +4851,20 @@ registry!(WorldgenMaterialCondition, {
     Hole => "minecraft:hole",
     AbovePreliminarySurface => "minecraft:above_preliminary_surface",
     StoneDepth => "minecraft:stone_depth",
-});
+}
+}
 
-registry!(WorldgenMaterialRule, {
+registry! {
+enum WorldgenMaterialRule {
     Bandlands => "minecraft:bandlands",
     Block => "minecraft:block",
     Sequence => "minecraft:sequence",
     Condition => "minecraft:condition",
-});
+}
+}
 
-registry!(WorldgenPlacementModifierType, {
+registry! {
+enum WorldgenPlacementModifierKind {
     BlockPredicateFilter => "minecraft:block_predicate_filter",
     RarityFilter => "minecraft:rarity_filter",
     SurfaceRelativeThresholdFilter => "minecraft:surface_relative_threshold_filter",
@@ -4719,13 +4880,17 @@ registry!(WorldgenPlacementModifierType, {
     InSquare => "minecraft:in_square",
     RandomOffset => "minecraft:random_offset",
     CarvingMask => "minecraft:carving_mask",
-});
+}
+}
 
-registry!(WorldgenRootPlacerType, {
+registry! {
+enum WorldgenRootPlacerKind {
     MangroveRootPlacer => "minecraft:mangrove_root_placer",
-});
+}
+}
 
-registry!(WorldgenStructurePiece, {
+registry! {
+enum WorldgenStructurePiece {
     Mscorridor => "minecraft:mscorridor",
     Mscrossing => "minecraft:mscrossing",
     Msroom => "minecraft:msroom",
@@ -4782,22 +4947,28 @@ registry!(WorldgenStructurePiece, {
     Shipwreck => "minecraft:shipwreck",
     Nefos => "minecraft:nefos",
     Jigsaw => "minecraft:jigsaw",
-});
+}
+}
 
-registry!(WorldgenStructurePlacement, {
+registry! {
+enum WorldgenStructurePlacement {
     RandomSpread => "minecraft:random_spread",
     ConcentricRings => "minecraft:concentric_rings",
-});
+}
+}
 
-registry!(WorldgenStructurePoolElement, {
+registry! {
+enum WorldgenStructurePoolElement {
     SinglePoolElement => "minecraft:single_pool_element",
     ListPoolElement => "minecraft:list_pool_element",
     FeaturePoolElement => "minecraft:feature_pool_element",
     EmptyPoolElement => "minecraft:empty_pool_element",
     LegacySinglePoolElement => "minecraft:legacy_single_pool_element",
-});
+}
+}
 
-registry!(WorldgenStructureProcessor, {
+registry! {
+enum WorldgenStructureProcessor {
     BlockIgnore => "minecraft:block_ignore",
     BlockRot => "minecraft:block_rot",
     Gravity => "minecraft:gravity",
@@ -4808,9 +4979,11 @@ registry!(WorldgenStructureProcessor, {
     BlackstoneReplace => "minecraft:blackstone_replace",
     LavaSubmergedBlock => "minecraft:lava_submerged_block",
     ProtectedBlocks => "minecraft:protected_blocks",
-});
+}
+}
 
-registry!(WorldgenStructureType, {
+registry! {
+enum WorldgenStructureKind {
     BuriedTreasure => "minecraft:buried_treasure",
     DesertPyramid => "minecraft:desert_pyramid",
     EndCity => "minecraft:end_city",
@@ -4827,18 +5000,22 @@ registry!(WorldgenStructureType, {
     Stronghold => "minecraft:stronghold",
     SwampHut => "minecraft:swamp_hut",
     WoodlandMansion => "minecraft:woodland_mansion",
-});
+}
+}
 
-registry!(WorldgenTreeDecoratorType, {
+registry! {
+enum WorldgenTreeDecoratorKind {
     TrunkVine => "minecraft:trunk_vine",
     LeaveVine => "minecraft:leave_vine",
     Cocoa => "minecraft:cocoa",
     Beehive => "minecraft:beehive",
     AlterGround => "minecraft:alter_ground",
     AttachedToLeaves => "minecraft:attached_to_leaves",
-});
+}
+}
 
-registry!(WorldgenTrunkPlacerType, {
+registry! {
+enum WorldgenTrunkPlacerKind {
     StraightTrunkPlacer => "minecraft:straight_trunk_placer",
     ForkingTrunkPlacer => "minecraft:forking_trunk_placer",
     GiantTrunkPlacer => "minecraft:giant_trunk_placer",
@@ -4847,4 +5024,5 @@ registry!(WorldgenTrunkPlacerType, {
     FancyTrunkPlacer => "minecraft:fancy_trunk_placer",
     BendingTrunkPlacer => "minecraft:bending_trunk_placer",
     UpwardsBranchingTrunkPlacer => "minecraft:upwards_branching_trunk_placer",
-});
+}
+}

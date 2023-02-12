@@ -7,7 +7,8 @@ use crate::read::ReadPacketError;
 use azalea_buf::{BufReadError, McBufVarReadable, McBufVarWritable, McBufWritable};
 use std::io::{Cursor, Write};
 
-// TODO: rename the packet files to just like clientbound_add_entity instead of clientbound_add_entity_packet
+// TODO: rename the packet files to just like clientbound_add_entity instead of
+// clientbound_add_entity_packet
 
 pub const PROTOCOL_VERSION: u32 = 760;
 
@@ -20,6 +21,7 @@ pub enum ConnectionProtocol {
 }
 
 impl ConnectionProtocol {
+    #[must_use]
     pub fn from_i32(i: i32) -> Option<Self> {
         match i {
             -1 => Some(ConnectionProtocol::Handshake),
@@ -38,8 +40,8 @@ where
 {
     fn id(&self) -> u32;
 
-    /// Read a packet by its id, ConnectionProtocol, and flow
-    fn read(id: u32, buf: &mut Cursor<&[u8]>) -> Result<Self, ReadPacketError>;
+    /// Read a packet by its id, `ConnectionProtocol`, and flow
+    fn read(id: u32, buf: &mut Cursor<&[u8]>) -> Result<Self, Box<ReadPacketError>>;
 
     fn write(&self, buf: &mut impl Write) -> Result<(), std::io::Error>;
 }
